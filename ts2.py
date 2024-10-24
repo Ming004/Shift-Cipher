@@ -80,19 +80,19 @@ class CaesarCipherApp(QMainWindow):
         if not fname:
             return
         try:
-            # Set Tesseract path here
+            # Set here
             pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'  # Ensure this path is correct
 
-            # Load the image in grayscale mode
+            # Load 
             img = cv2.imread(fname, cv2.IMREAD_GRAYSCALE)
             if img is None:
                 raise ValueError("Unread ! ! !")
 
-            # Preprocessing steps
+            # Preprocessing 
             _, img_bin = cv2.threshold(img, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
             img_bin = 255 - img_bin  # Invert the binary image for better OCR
 
-            # Display the processed image
+            # Display
             qImg = QImage(img_bin.data, img_bin.shape[1], img_bin.shape[0], QImage.Format.Format_Grayscale8)
             pixmap = QPixmap.fromImage(qImg)
             self.image_preview.setPixmap(pixmap.scaled(400, 400, Qt.AspectRatioMode.KeepAspectRatio))
@@ -100,7 +100,7 @@ class CaesarCipherApp(QMainWindow):
             # Perform OCR
             text = pytesseract.image_to_string(img_bin)
 
-            # 使用OCR结果更新input_text
+            # 使用OCR结果
             self.input_text.setPlainText(text)
 
             QMessageBox.information(self, "Success", "successfully.")
