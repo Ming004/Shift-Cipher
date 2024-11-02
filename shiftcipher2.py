@@ -21,15 +21,13 @@ def decrypt(text, shift):
 
     return encrypt_cipher(text, -shift)
 
-def cal_word_count_of_cipher(cipher_tx):
+def cal_word_count_of_cipher(text):
     freq = {}
-    for i in cipher_tx:
+    for i in text:
         if i.isalpha():
-            if i in freq:
-                freq[i] += 1
-            else:
-                freq[i] = 1
-            return freq
+            i = i.lower()
+            freq[i] = freq.get(i, 0) + 1
+        return freq 
 
 
 
