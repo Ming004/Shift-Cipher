@@ -29,7 +29,9 @@ def cal_word_count_of_cipher(text):
             freq[i] = freq.get(i, 0) + 1
         return freq 
 
-
+def cal_k_value(shift):
+    
+    
 
 
 
