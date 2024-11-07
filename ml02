@@ -1,0 +1,267 @@
+import sys
+import cv2
+import pytesseract
+import string
+from collections import Counter
+import numpy as np
+from sklearn.linear_model import LogisticRegression
+from PyQt6.QtWidgets import *
+from PyQt6.QtGui import QIcon, QFont, QPalette, QColor, QImage, QPixmap
+from PyQt6.QtCore import Qt
+
+def encrypt_check(raw):
+    word_count = len(raw.split())
+    if word_count < 200:
+        return "Must be at least 200 words."
+    return "valid...."
+
+def encrypt_cipher(text, shift):
+    shift %= 26
+    upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    lower = 'abcdefghijklmnopqrstuvwxyz'
+    shifted_upper = upper[shift:] + upper[:shift]
+    shifted_lower = lower[shift:] + lower[:shift]
+    translation_table = str.maketrans(upper + lower, shifted_upper + shifted_lower)
+    return text.translate(translation_table)
+
+def decrypt(text, shift):
+    return encrypt_cipher(text, -shift)
+
+def cal_word_count_of_cipher(text):
+    freq = {}
+    for i in text:
+        if i.isalpha():
+            i = i.lower()
+            freq[i] = freq.get(i, 0) + 1
+    return freq 
+
+def cal_k_value(shift):
+    # Placeholder for future k-value calculation implementation
+    pass
+
+def frequency_analysis(text):
+    text = ''.join(filter(str.isalpha, text)).lower()
+    freq = Counter(text)
+    total = sum(freq.values())
+    return {char: count / total for char, count in freq.items()}
+
+def predict_shift_using_ml(ciphertext):
+    english_freq = {
+        'e': 0.127, 't': 0.0906, 'a': 0.0817, 'o': 0.0751, 'i': 0.0697, 'n': 0.0675,
+        's': 0.0633, 'h': 0.0609, 'r': 0.0599, 'd': 0.0425, 'l': 0.0403, 'c': 0.0278,
+        'u': 0.0276, 'm': 0.0241, 'w': 0.0236, 'f': 0.0223, 'g': 0.0202, 'y': 0.0197,
+        'p': 0.0193, 'b': 0.0149, 'v': 0.0098, 'k': 0.0077, 'j': 0.0015, 'x': 0.0015,
+        'q': 0.00095, 'z': 0.00074
+    }
+
+    cipher_freq = frequency_analysis(ciphertext)
+    cipher_vector = np.array([cipher_freq.get(char, 0) for char in string.ascii_lowercase]).reshape(1, -1)
+    english_vector = np.array([english_freq.get(char, 0) for char in string.ascii_lowercase])
+
+    shifts = list(range(26))
+    models = [LogisticRegression().fit([np.roll(english_vector, shift)], [shift]) for shift in shifts]
+    predictions = [model.predict(cipher_vector)[0] for model in models]
+    predicted_shift = Counter(predictions).most_common(1)[0][0]
+
+    return predicted_shift
+
+class CaesarCipherApp(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Caesar Cipher Translator") # title
+        self.setGeometry(100, 100, 1000, 700)
+        self.setWindowIcon(QIcon("hiii.png"))  # icon
+
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+        self.layout = QVBoxLayout(self.central_widget)
+
+        # input Section
+        input_layout = QHBoxLayout()
+        self.input_text = QTextEdit()
+        self.input_text.setPlaceholderText("Enter words here (at least 200 words)...")
+        self.input_text.setFont(QFont("Century Gothic", 12))
+        input_layout.addWidget(self.input_text)
+        # shift selection
+        shift_layout = QVBoxLayout()
+        self.shift_slider = QSlider(Qt.Orientation.Horizontal)
+        self.shift_slider.setRange(0, 26)
+        self.shift_slider.valueChanged.connect(self.update_shift_label)
+        self.shift_value = QLabel("Shift: 0")
+        shift_layout.addWidget(self.shift_slider)
+        shift_layout.addWidget(self.shift_value)
+        # buttons
+        button_layout = QHBoxLayout()
+        self.encrypt_btn = QPushButton("Encrypt", clicked=self.encrypt_text)
+        self.decrypt_btn = QPushButton("Decrypt", clicked=self.decrypt_text)
+        button_layout.addWidget(self.encrypt_btn)
+        button_layout.addWidget(self.decrypt_btn)
+        # Add this in the __init__ method where other buttons are defined
+        self.count_btn = QPushButton("Count Words", clicked=self.count_words)
+        button_layout.addWidget(self.count_btn)
+        # results
+        self.result_text = QTextEdit()
+        self.result_text.setReadOnly(True)
+        self.result_text.setPlaceholderText("Results will be appear here...")
+        self.result_text.setFont(QFont("Century Gothic", 12))
+        # theme and file operations
+        control_layout = QHBoxLayout()
+        self.theme_combo = QComboBox()
+        self.theme_combo.addItems(["Light", "Dark"])
+        self.theme_combo.currentIndexChanged.connect(self.change_theme)
+        self.file_btn = QPushButton("Save", clicked=self.file_operations)
+        control_layout.addWidget(self.theme_combo)
+        control_layout.addWidget(self.file_btn)
+        self.ocr_btn = QPushButton("Import Image", clicked=self.ocr_preprocess_image)
+        control_layout.addWidget(self.ocr_btn)
+        self.image_preview = QLabel()
+        self.layout.addWidget(self.image_preview)
+        # Adding to main layout
+        self.layout.addLayout(input_layout)
+        self.layout.addLayout(shift_layout)
+        self.layout.addLayout(button_layout)
+        self.layout.addWidget(self.result_text)
+        self.layout.addLayout(control_layout)
+        self.statusBar().showMessage('Version 2.1 Powered by Charles')
+
+        # Theme setup
+        self.custom_colors = {
+            'background': QColor(240, 240, 240),
+            'text': QColor(0, 0, 0),
+            'button': QColor(220, 220, 220),
+            'button_text': QColor(0, 0, 0)
+        }
+        self.change_theme()
+
+    def ocr_preprocess_image(self):
+        fname, _ = QFileDialog.getOpenFileName(self, "Open Image for OCR", "", "Image Files (*.png *.jpg *.jpeg *.bmp*.pdf)")
+        if not fname:
+            return
+        try:
+            # Set Tesseract path here
+            pytesseract.pytesseract.tesseract_cmd = r'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'  # Ensure this path is correct
+
+            # Load the image in grayscale mode
+            img = cv2.imread(fname, cv2.IMREAD_GRAYSCALE)
+            if img is None:
+                raise ValueError("Unread ! ! !")
+
+            # Preprocessing steps
+            _, img_bin = cv2.threshold(img, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+            img_bin = 255 - img_bin  # Invert the binary image for better OCR
+
+            # Display the processed image
+            qImg = QImage(img_bin.data, img_bin.shape[1], img_bin.shape[0], QImage.Format.Format_Grayscale8)
+            pixmap = QPixmap.fromImage(qImg)
+            self.image_preview.setPixmap(pixmap.scaled(400, 400, Qt.AspectRatioMode.KeepAspectRatio))
+
+            # Perform OCR
+            text = pytesseract.image_to_string(img_bin)
+
+            # 使用OCR结果更新input_text
+            self.input_text.setPlainText(text)
+
+            QMessageBox.information(self, "Success", "successfully.")
+            self.statusBar().showMessage('OCR completed', 5000)
+        except Exception as e:
+            error_message = f"Failed to process the image: {str(e)}"
+            QMessageBox.warning(self, "Image Processing Error", error_message)
+            self.statusBar().showMessage(error_message, 10000)
+
+    def update_shift_label(self, value):
+        self.shift_value.setText(f"Shift: {value}") # update
+
+    def encrypt_text(self):
+        raw = self.input_text.toPlainText()
+        shift = self.shift_slider.value()
+        check_result = encrypt_check(raw)
+        if check_result == "valid....":
+            encrypted = encrypt_cipher(raw, shift)
+            self.result_text.setText(encrypted)
+            self.statusBar().showMessage('Text encrypted', 5000)
+        else:
+            self.result_text.setText(check_result)
+            self.statusBar().showMessage('Encryption Error: ' + check_result, 5000)
+
+    def decrypt_text(self):
+        cipher = self.input_text.toPlainText()
+        result = ""
+        for shift in range(26):
+            decrypted = decrypt(cipher, shift)
+            result += f"Shift {shift}: {decrypted}\n\n"
+        self.result_text.setText(result)
+        self.statusBar().showMessage('Text decrypted', 5000)
+
+    def change_theme(self):
+        if self.theme_combo.currentText() == "Dark":
+            self.set_dark_theme()
+        elif self.theme_combo.currentText() == "Light":
+            self.set_light_theme()
+
+    def set_theme(self, theme_colors):
+        palette = QPalette()
+        for role, color in theme_colors.items():
+            palette.setColor(role, QColor(*color))
+        self.setPalette(palette)
+
+    def set_light_theme(self):
+        light_colors = {
+            QPalette.ColorRole.Window: (240, 240, 240),
+            QPalette.ColorRole.WindowText: (0, 0, 0),
+            QPalette.ColorRole.Base: (255, 255, 250),
+            QPalette.ColorRole.AlternateBase: (245, 245, 245),
+            QPalette.ColorRole.ToolTipBase: (255, 255, 255),
+            QPalette.ColorRole.ToolTipText: (0, 0, 255),
+            QPalette.ColorRole.Text: (0, 0, 0),
+            QPalette.ColorRole.Button: (220, 220, 220),
+            QPalette.ColorRole.ButtonText: (0, 0, 0),
+            QPalette.ColorRole.PlaceholderText: (0, 0, 10),
+            QPalette.ColorRole.Highlight: (42, 130, 218),
+            QPalette.ColorRole.HighlightedText: (255, 255, 255)
+        }
+        self.set_theme(light_colors)
+
+    def set_dark_theme(self):
+        dark_colors = {
+            QPalette.ColorRole.Window: (53, 53, 53),
+            QPalette.ColorRole.WindowText: (255, 255, 255),
+            QPalette.ColorRole.Base: (10, 10, 10),
+            QPalette.ColorRole.AlternateBase: (20, 20, 20),
+            QPalette.ColorRole.ToolTipBase: (0, 0, 0),
+            QPalette.ColorRole.ToolTipText: (255, 255, 255),
+            QPalette.ColorRole.Text: (255, 255, 255),
+            QPalette.ColorRole.Button: (53, 53, 53),
+            QPalette.ColorRole.ButtonText: (255, 255, 255),
+            QPalette.ColorRole.Highlight: (42, 130, 218),
+            QPalette.ColorRole.HighlightedText: (0, 0, 0)
+        }
+        self.set_theme(dark_colors)
+
+    def file_operations(self):
+        action, ok = QInputDialog.getItem(self, "File Operation",
+                                          "Choose an action:", ["Load", "Save"], 0, False)
+        if ok:
+            if action == "Load":
+                fname, _ = QFileDialog.getOpenFileName(self, "Open file", "", "Text Files (*.txt*.pdf)")
+                if not fname:
+                    return
+                with open(fname, 'r') as f:
+                    self.input_text.setText(f.read())
+            elif action == "Save":
+                fname, _ = QFileDialog.getSaveFileName(self, "Save file", "", "Text Files (*.txt)")
+                if not fname:
+                    return
+                with open(fname, 'w') as f:
+                    f.write(self.result_text.toPlainText())
+
+    def count_words(self):
+        text = self.input_text.toPlainText()
+        word_count = cal_word_count_of_cipher(text)
+        QMessageBox.information(self, "Word Count", f"Word count: {word_count}")
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = CaesarCipherApp()
+    window.show()
+    sys.exit(app.exec())
