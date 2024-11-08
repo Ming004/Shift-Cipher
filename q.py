@@ -6,6 +6,11 @@ from PyQt6.QtGui import QIcon, QFont, QPalette, QColor, QImage, QPixmap
 from PyQt6.QtCore import Qt
 from shiftcipher2 import encrypt_check, encrypt_cipher, decrypt, cal_word_count_of_cipher
 
+FILE_OPERATIONS = ["Load", "Save"]
+LOAD_FILTER = "Text Files (*.txt *.pdf)"
+SAVE_FILTER = "Text Files (*.txt)"
+
+
 def validate_input_text(text):
     min_length = 200
     if len(text) < min_length:
@@ -204,22 +209,41 @@ class CaesarCipherApp(QMainWindow):
         }
         self.set_theme(dark_colors)
 
+    # Constants for file operations
+
     def file_operations(self):
-        action, ok = QInputDialog.getItem(self, "File Operation",
-                                          "Choose an action:", ["Load", "Save"], 0, False)
+        action, ok = QInputDialog.getItem(self, "File Operation", "Choose an action:", FILE_OPERATIONS, 0, False)
         if ok:
             if action == "Load":
-                fname, _ = QFileDialog.getOpenFileName(self, "Open file", "", "Text Files (*.txt*.pdf)")
-                if not fname:
-                    return
-                with open(fname, 'r') as f:
-                    self.input_text.setText(f.read())
+                self.load_file()
             elif action == "Save":
-                fname, _ = QFileDialog.getSaveFileName(self, "Save file", "", "Text Files (*.txt)")
-                if not fname:
-                    return
-                with open(fname, 'w') as f:
-                    f.write(self.result_text.toPlainText())
+                self.save_file()
+
+    def load_file(self):
+        fname, _ = QFileDialog.getOpenFileName(self, "Open file", "", LOAD_FILTER)
+        if not fname:
+            return
+        try:
+            with open(fname, 'r') as f:
+                self.input_text.setText(f.read())
+            self.statusBar().showMessage('File loaded successfully', 5000)
+        except Exception as e:
+            error_message = f"Failed to load file: {str(e)}"
+            QMessageBox.warning(self, "Load Error", error_message)
+            self.statusBar().showMessage(error_message, 10000)
+
+    def save_file(self):
+        fname, _ = QFileDialog.getSaveFileName(self, "Save file", "", SAVE_FILTER)
+        if not fname:
+            return
+        try:
+            with open(fname, 'w') as f:
+                f.write(self.result_text.toPlainText())
+            self.statusBar().showMessage('File saved successfully', 5000)
+        except Exception as e:
+            error_message = f"Failed to save file: {str(e)}"
+            QMessageBox.warning(self, "Save Error", error_message)
+            self.statusBar().showMessage(error_message, 10000)
 
     def count_words(self):
         text = self.input_text.toPlainText()
