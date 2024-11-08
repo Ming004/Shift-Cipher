@@ -69,21 +69,20 @@ class CaesarCipherApp(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Caesar Cipher Translator") # title
+        self.setWindowTitle("Caesar Cipher Translator")
         self.setGeometry(100, 100, 1000, 700)
-        self.setWindowIcon(QIcon("hiii.png"))  # icon
+        self.setWindowIcon(QIcon("hiii.png"))
 
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         self.layout = QVBoxLayout(self.central_widget)
 
-        # input Section
         input_layout = QHBoxLayout()
         self.input_text = QTextEdit()
         self.input_text.setPlaceholderText("Enter words here (at least 200 words)...")
         self.input_text.setFont(QFont("Century Gothic", 12))
         input_layout.addWidget(self.input_text)
-        # shift selection
+
         shift_layout = QVBoxLayout()
         self.shift_slider = QSlider(Qt.Orientation.Horizontal)
         self.shift_slider.setRange(0, 26)
@@ -91,21 +90,22 @@ class CaesarCipherApp(QMainWindow):
         self.shift_value = QLabel("Shift: 0")
         shift_layout.addWidget(self.shift_slider)
         shift_layout.addWidget(self.shift_value)
-        # buttons
+
         button_layout = QHBoxLayout()
         self.encrypt_btn = QPushButton("Encrypt", clicked=self.encrypt_text)
         self.decrypt_btn = QPushButton("Decrypt", clicked=self.decrypt_text)
         button_layout.addWidget(self.encrypt_btn)
         button_layout.addWidget(self.decrypt_btn)
-        # Add this in the __init__ method where other buttons are defined
         self.count_btn = QPushButton("Count Words", clicked=self.count_words)
         button_layout.addWidget(self.count_btn)
-        # results
+        self.predict_shift_btn = QPushButton("Predict Shift", clicked=self.predict_shift)
+        button_layout.addWidget(self.predict_shift_btn)
+
         self.result_text = QTextEdit()
         self.result_text.setReadOnly(True)
         self.result_text.setPlaceholderText("Results will be appear here...")
         self.result_text.setFont(QFont("Century Gothic", 12))
-        # theme and file operations
+
         control_layout = QHBoxLayout()
         self.theme_combo = QComboBox()
         self.theme_combo.addItems(["Light", "Dark"])
@@ -117,7 +117,7 @@ class CaesarCipherApp(QMainWindow):
         control_layout.addWidget(self.ocr_btn)
         self.image_preview = QLabel()
         self.layout.addWidget(self.image_preview)
-        # Adding to main layout
+
         self.layout.addLayout(input_layout)
         self.layout.addLayout(shift_layout)
         self.layout.addLayout(button_layout)
@@ -125,7 +125,6 @@ class CaesarCipherApp(QMainWindow):
         self.layout.addLayout(control_layout)
         self.statusBar().showMessage('Version 2.1 Powered by Charles')
 
-        # Theme setup
         self.custom_colors = {
             'background': QColor(240, 240, 240),
             'text': QColor(0, 0, 0),
@@ -133,6 +132,20 @@ class CaesarCipherApp(QMainWindow):
             'button_text': QColor(0, 0, 0)
         }
         self.change_theme()
+
+    def show_predicted_shift(self, ciphertext):
+        predicted_shift = predict_shift_using_ml(ciphertext)
+        table = QTableWidget()
+        table.setRowCount(1)
+        table.setColumnCount(2)
+        table.setHorizontalHeaderLabels(["Ciphertext", "Predicted Shift"])
+        table.setItem(0, 0, QTableWidgetItem(ciphertext))
+        table.setItem(0, 1, QTableWidgetItem(str(predicted_shift)))
+        self.layout.addWidget(table)
+
+    def predict_shift(self):
+        ciphertext = self.input_text.toPlainText()
+        self.show_predicted_shift(ciphertext)
 
     def ocr_preprocess_image(self):
         fname, _ = QFileDialog.getOpenFileName(self, "Open Image for OCR", "", "Image Files (*.png *.jpg *.jpeg *.bmp*.pdf)")
