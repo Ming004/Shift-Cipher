@@ -46,24 +46,29 @@ def frequency_analysis(text):
     return {char: count / total for char, count in freq.items()}
 
 def predict_shift_using_ml(ciphertext):
-    english_freq = {
-        'e': 0.127, 't': 0.0906, 'a': 0.0817, 'o': 0.0751, 'i': 0.0697, 'n': 0.0675,
-        's': 0.0633, 'h': 0.0609, 'r': 0.0599, 'd': 0.0425, 'l': 0.0403, 'c': 0.0278,
-        'u': 0.0276, 'm': 0.0241, 'w': 0.0236, 'f': 0.0223, 'g': 0.0202, 'y': 0.0197,
-        'p': 0.0193, 'b': 0.0149, 'v': 0.0098, 'k': 0.0077, 'j': 0.0015, 'x': 0.0015,
-        'q': 0.00095, 'z': 0.00074
-    }
+    try:
+        english_freq = {
+            'e': 0.127, 't': 0.0906, 'a': 0.0817, 'o': 0.0751, 'i': 0.0697, 'n': 0.0675,
+            's': 0.0633, 'h': 0.0609, 'r': 0.0599, 'd': 0.0425, 'l': 0.0403, 'c': 0.0278,
+            'u': 0.0276, 'm': 0.0241, 'w': 0.0236, 'f': 0.0223, 'g': 0.0202, 'y': 0.0197,
+            'p': 0.0193, 'b': 0.0149, 'v': 0.0098, 'k': 0.0077, 'j': 0.0015, 'x': 0.0015,
+            'q': 0.00095, 'z': 0.00074
+        }
 
-    cipher_freq = frequency_analysis(ciphertext)
-    cipher_vector = np.array([cipher_freq.get(char, 0) for char in string.ascii_lowercase]).reshape(1, -1)
-    english_vector = np.array([english_freq.get(char, 0) for char in string.ascii_lowercase])
+        cipher_freq = frequency_analysis(ciphertext)
+        cipher_vector = np.array([cipher_freq.get(char, 0) for char in string.ascii_lowercase]).reshape(1, -1)
+        english_vector = np.array([english_freq.get(char, 0) for char in string.ascii_lowercase])
 
-    shifts = list(range(26))
-    models = [LogisticRegression().fit([np.roll(english_vector, shift)], [shift]) for shift in shifts]
-    predictions = [model.predict(cipher_vector)[0] for model in models]
-    predicted_shift = Counter(predictions).most_common(1)[0][0]
+        shifts = list(range(26))
+        models = [LogisticRegression().fit([np.roll(english_vector, shift)], [shift]) for shift in shifts]
+        predictions = [model.predict(cipher_vector)[0] for model in models]
+        predicted_shift = Counter(predictions).most_common(1)[0][0]
 
-    return predicted_shift
+        return predicted_shift
+    except Exception as e:
+        print(f"Error in predict_shift_using_ml: {e}")
+        return None
+
 
 class CaesarCipherApp(QMainWindow):
     def __init__(self):
@@ -133,15 +138,22 @@ class CaesarCipherApp(QMainWindow):
         }
         self.change_theme()
 
-    def show_predicted_shift(self, ciphertext):
-        predicted_shift = predict_shift_using_ml(ciphertext)
-        table = QTableWidget()
-        table.setRowCount(1)
-        table.setColumnCount(2)
-        table.setHorizontalHeaderLabels(["Ciphertext", "Predicted Shift"])
-        table.setItem(0, 0, QTableWidgetItem(ciphertext))
-        table.setItem(0, 1, QTableWidgetItem(str(predicted_shift)))
-        self.layout.addWidget(table)
+ def show_predicted_shift(self, ciphertext):
+        try:
+            predicted_shift = predict_shift_using_ml(ciphertext)
+            if predicted_shift is None:
+                raise ValueError("Failed to predict shift")
+
+            table = QTableWidget()
+            table.setRowCount(1)
+            table.setColumnCount(2)
+            table.setHorizontalHeaderLabels(["Ciphertext", "Predicted Shift"])
+            table.setItem(0, 0, QTableWidgetItem(ciphertext))
+            table.setItem(0, 1, QTableWidgetItem(str(predicted_shift)))
+            self.layout.addWidget(table)
+        except Exception as e:
+            print(f"Error in show_predicted_shift: {e}")
+            QMessageBox.warning(self, "Prediction Error", f"Failed to predict shift: {e}")
 
     def predict_shift(self):
         ciphertext = self.input_text.toPlainText()
