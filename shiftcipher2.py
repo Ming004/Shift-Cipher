@@ -8,14 +8,20 @@ def encrypt_check(raw):
     return "valid...."
 
 def encrypt_cipher(text, shift):
-
     shift %= 26
     upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     lower = 'abcdefghijklmnopqrstuvwxyz'
-    shifted_upper = upper[shift:] + upper[:shift]
-    shifted_lower = lower[shift:] + lower[:shift]
-    translation_table = str.maketrans(upper + lower, shifted_upper + shifted_lower)
-    return text.translate(translation_table)
+    result = []
+    for char in text:
+        if char.isupper():
+            index = (upper.index(char) + shift) % 26
+            result.append(upper[index])
+        elif char.islower():
+            index = (lower.index(char) + shift) % 26
+            result.append(lower[index])
+        else:
+            result.append(char)
+    return ''.join(result)
 
 def decrypt(text, shift):
 
