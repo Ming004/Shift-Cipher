@@ -7,21 +7,15 @@ def encrypt_check(raw):
         return "Must be at least 200 words."
     return "valid...."
 
-def encrypt_cipher(text, shift):
-    shift %= 26
-    upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    lower = 'abcdefghijklmnopqrstuvwxyz'
-    result = []
-    for char in text:
-        if char.isupper():
-            index = (upper.index(char) + shift) % 26
-            result.append(upper[index])
-        elif char.islower():
-            index = (lower.index(char) + shift) % 26
-            result.append(lower[index])
-        else:
-            result.append(char)
-    return ''.join(result)
+def encrypt_cipher(raw, shift):
+    upper ='ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    lower ='abcdefghijklmnopqrstuvwxyz'
+    shift_upper=upper[shift:]+upper[0:shift] # we don't use % 26 because we are using the same length of the alphabet
+    shift_lower=lower[shift:]+lower[0:shift]
+    table = str.maketrans(upper+lower, shift_upper+shift_lower) # translate table
+    encrypt_raw = raw.translate(table)
+    reraw = encrypt_raw + encrypt_raw
+    return reraw
 
 def decrypt(text, shift):
 
