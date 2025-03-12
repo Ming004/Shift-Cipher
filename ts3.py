@@ -272,15 +272,13 @@ class CaesarCipherApp(QMainWindow):
         if ok:
             if action == "Load":
                 fname, _ = QFileDialog.getOpenFileName(self, "Open file", "", "Text Files (*.txt*.pdf)")
-                if not fname:
-                    return
-                with open(fname, 'r') as f:
-                    self.input_text.setText(f.read())
+                if fname:
+                with open(fname, 'r') as file:
+                    self.input_text.setText(file.read())
             elif action == "Save":
                 fname, _ = QFileDialog.getSaveFileName(self, "Save file", "", "Text Files (*.txt)")
-                if not fname:
-                    return
-                with open(fname, 'w') as f:
+                if fname:
+                with open(fname, 'w') as file:
                     f.write(self.result_text.toPlainText())
 
     def count_words(self):
