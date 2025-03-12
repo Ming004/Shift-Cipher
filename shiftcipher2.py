@@ -2,10 +2,8 @@
 #shift = int(input("Enter: "))
 
 def encrypt_check(raw):
-    count = len(raw.split())
-    if count < 200:
-        return "Must be at least 200 words."
-    return "valid...."
+    return "valid" if len(raw.split()) >= 200 else " must be 200 words"
+    
 
 def encrypt_cipher(raw, shift):
     upper ='ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -14,12 +12,10 @@ def encrypt_cipher(raw, shift):
     shift_lower=lower[shift:]+lower[0:shift]
     table = str.maketrans(upper+lower, shift_upper+shift_lower) # translate table
     encrypt_raw = raw.translate(table)
-    reraw = encrypt_raw
-    return reraw
+    return encrypt_raw
 
 
 def decrypt(raw, shift):
-
     return encrypt_cipher(raw, -shift)
 
 def cal_word_count_of_cipher(raw):
