@@ -271,12 +271,12 @@ class CaesarCipherApp(QMainWindow):
                                           "Choose an action:", ["Load", "Save"], 0, False)
         if ok:
             if action == "Load":
-                fname, _ = QFileDialog.getOpenFileName(self, "Open file", "", "Text Files (*.txt*.pdf)")
+                fname, _ = QFileDialog.getOpenFileName(self, "Open file", "", "Text Files (*.txt*.pdf*.docx)")
                 if fname:
                 with open(fname, 'r') as file:
                     self.input_text.setText(file.read())
             elif action == "Save":
-                fname, _ = QFileDialog.getSaveFileName(self, "Save file", "", "Text Files (*.txt)")
+                fname, _ = QFileDialog.getSaveFileName(self, "Save file", "", "Text Files (*.txt*.pdf*.docx)")
                 if fname:
                 with open(fname, 'w') as file:
                     f.write(self.result_text.toPlainText())
